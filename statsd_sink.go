@@ -211,7 +211,7 @@ func (s *StatsDSink) processCmd(cmd *statsdEmitCmd) {
 func (s *StatsDSink) processEvent(job string, event string, kvs map[string]string) {
 	var tags strings.Builder
 	if kvs != nil {
-		_, _ = tags.WriteString("#")
+		_, _ = tags.WriteString("|#")
 		for k, v := range kvs {
 			if tags.Len() > 1 {
 				_, _ = tags.WriteString(",")
