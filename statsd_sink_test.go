@@ -2,13 +2,14 @@ package health
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"net"
 	"runtime"
 	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 var testAddr = "127.0.0.1:7890"
@@ -312,7 +313,7 @@ func BenchmarkStatsDSinkProcessEvent(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		sink.processEvent("myjob", "myevent")
+		sink.processEvent("myjob", "myevent", nil)
 	}
 }
 
@@ -322,7 +323,7 @@ func BenchmarkStatsDSinkProcessEventErr(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		sink.processEventErr("myjob", "myevent")
+		sink.processEventErr("myjob", "myevent", nil)
 	}
 }
 
@@ -332,7 +333,7 @@ func BenchmarkStatsDSinkProcessTimingBig(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		sink.processTiming("myjob", "myevent", 30000000)
+		sink.processTiming("myjob", "myevent", 30000000, nil)
 	}
 }
 
@@ -342,7 +343,7 @@ func BenchmarkStatsDSinkProcessTimingSmall(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		sink.processTiming("myjob", "myevent", 1230000)
+		sink.processTiming("myjob", "myevent", 1230000, nil)
 	}
 }
 
@@ -352,7 +353,7 @@ func BenchmarkStatsDSinkProcessGauge(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		sink.processGauge("myjob", "myevent", 3.14)
+		sink.processGauge("myjob", "myevent", 3.14, nil)
 	}
 }
 
@@ -362,7 +363,7 @@ func BenchmarkStatsDSinkProcessComplete(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		sink.processComplete("myjob", Success, 1230000)
+		sink.processComplete("myjob", Success, 1230000, nil)
 	}
 }
 

@@ -233,33 +233,53 @@ func (s *StatsDSink) processEvent(job string, event string, kvs map[string]strin
 }
 
 func (s *StatsDSink) processEventErr(job string, event string, kvs map[string]string) {
+	var tags strings.Builder
+	if kvs != nil {
+		_, _ = tags.WriteString("|#")
+		for k, v := range kvs {
+			if tags.Len() > 1 {
+				_, _ = tags.WriteString(",")
+			}
+			_, _ = tags.WriteString(fmt.Sprintf("%v:%v", k, v))
+		}
+	}
 	if !s.options.SkipTopLevelEvents {
 		pb := s.getPrefixBuffer("", event, "error")
-		pb.WriteString("1|c\n")
+		pb.WriteString(fmt.Sprintf("1|c%s\n", tags.String()))
 		s.writeStatsDMetric(pb.Bytes())
 	}
 
 	if !s.options.SkipNestedEvents {
 		pb := s.getPrefixBuffer(job, event, "error")
-		pb.WriteString("1|c\n")
+		pb.WriteString(fmt.Sprintf("1|c%s\n", tags.String()))
 		s.writeStatsDMetric(pb.Bytes())
 	}
 }
 
 func (s *StatsDSink) processTiming(job string, event string, nanos int64, kvs map[string]string) {
 	s.writeNanosToTimingBuf(nanos)
+	var tags strings.Builder
+	if kvs != nil {
+		_, _ = tags.WriteString("|#")
+		for k, v := range kvs {
+			if tags.Len() > 1 {
+				_, _ = tags.WriteString(",")
+			}
+			_, _ = tags.WriteString(fmt.Sprintf("%v:%v", k, v))
+		}
+	}
 
 	if !s.options.SkipTopLevelEvents {
 		pb := s.getPrefixBuffer("", event, "")
 		pb.Write(s.timingBuf)
-		pb.WriteString("|ms\n")
+		pb.WriteString(fmt.Sprintf("|ms%s\n", tags.String()))
 		s.writeStatsDMetric(pb.Bytes())
 	}
 
 	if !s.options.SkipNestedEvents {
 		pb := s.getPrefixBuffer(job, event, "")
 		pb.Write(s.timingBuf)
-		pb.WriteString("|ms\n")
+		pb.WriteString(fmt.Sprintf("|ms%s\n", tags.String()))
 		s.writeStatsDMetric(pb.Bytes())
 	}
 }
@@ -271,18 +291,28 @@ func (s *StatsDSink) processGauge(job string, event string, value float64, kvs m
 		prec = -1
 	}
 	s.timingBuf = strconv.AppendFloat(s.timingBuf, value, 'f', prec, 64)
+	var tags strings.Builder
+	if kvs != nil {
+		_, _ = tags.WriteString("|#")
+		for k, v := range kvs {
+			if tags.Len() > 1 {
+				_, _ = tags.WriteString(",")
+			}
+			_, _ = tags.WriteString(fmt.Sprintf("%v:%v", k, v))
+		}
+	}
 
 	if !s.options.SkipTopLevelEvents {
 		pb := s.getPrefixBuffer("", event, "")
 		pb.Write(s.timingBuf)
-		pb.WriteString("|g\n")
+		pb.WriteString(fmt.Sprintf("|g%s\n", tags.String()))
 		s.writeStatsDMetric(pb.Bytes())
 	}
 
 	if !s.options.SkipNestedEvents {
 		pb := s.getPrefixBuffer(job, event, "")
 		pb.Write(s.timingBuf)
-		pb.WriteString("|g\n")
+		pb.WriteString(fmt.Sprintf("|g%s\n", tags.String()))
 		s.writeStatsDMetric(pb.Bytes())
 	}
 }
@@ -290,10 +320,20 @@ func (s *StatsDSink) processGauge(job string, event string, value float64, kvs m
 func (s *StatsDSink) processComplete(job string, status CompletionStatus, nanos int64, kvs map[string]string) {
 	s.writeNanosToTimingBuf(nanos)
 	statusString := status.String()
+	var tags strings.Builder
+	if kvs != nil {
+		_, _ = tags.WriteString("|#")
+		for k, v := range kvs {
+			if tags.Len() > 1 {
+				_, _ = tags.WriteString(",")
+			}
+			_, _ = tags.WriteString(fmt.Sprintf("%v:%v", k, v))
+		}
+	}
 
 	pb := s.getPrefixBuffer(job, "", statusString)
 	pb.Write(s.timingBuf)
-	pb.WriteString("|ms\n")
+	pb.WriteString(fmt.Sprintf("|ms%s\n", tags.String()))
 	s.writeStatsDMetric(pb.Bytes())
 }
 
