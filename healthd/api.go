@@ -3,9 +3,9 @@ package healthd
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/Preciselyco/health"
+	"github.com/Preciselyco/web"
 	"github.com/braintree/manners"
-	"github.com/gocraft/health"
-	"github.com/gocraft/web"
 	"math"
 	"net/http"
 	"sort"

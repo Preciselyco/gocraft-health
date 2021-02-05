@@ -2,7 +2,7 @@ package healthd
 
 import (
 	"fmt"
-	"github.com/gocraft/health"
+	"github.com/Preciselyco/health"
 	"sort"
 	"sync"
 	"sync/atomic"

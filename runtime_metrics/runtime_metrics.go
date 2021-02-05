@@ -1,7 +1,7 @@
 package runtime_metrics
 
 import (
-	"github.com/gocraft/health"
+	"github.com/Preciselyco/health"
 	"runtime"
 	"runtime/debug"
 	"time"

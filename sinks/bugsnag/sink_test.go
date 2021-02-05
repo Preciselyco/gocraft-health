@@ -2,8 +2,8 @@ package bugsnag
 
 import (
 	"fmt"
-	"github.com/gocraft/health"
-	"github.com/gocraft/health/stack"
+	"github.com/Preciselyco/health"
+	"github.com/Preciselyco/health/stack"
 	"github.com/stretchr/testify/assert"
 	"net/http"
 	"testing"

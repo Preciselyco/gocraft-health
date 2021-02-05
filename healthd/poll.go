@@ -2,7 +2,7 @@ package healthd
 
 import (
 	"encoding/json"
-	"github.com/gocraft/health"
+	"github.com/Preciselyco/health"
 	"io/ioutil"
 	"net/http"
 	"time"

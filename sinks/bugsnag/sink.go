@@ -2,7 +2,7 @@ package bugsnag
 
 import (
 	"fmt"
-	"github.com/gocraft/health"
+	"github.com/Preciselyco/health"
 	"os"
 )
 
