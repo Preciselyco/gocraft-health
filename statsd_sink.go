@@ -2,8 +2,10 @@ package health
 
 import (
 	"bytes"
+	"fmt"
 	"net"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -81,6 +83,7 @@ type statsdEmitCmd struct {
 	Event  string
 	Nanos  int64
 	Value  float64
+	Kvs    map[string]string
 	Status CompletionStatus
 }
 
@@ -133,23 +136,23 @@ func (s *StatsDSink) Drain() {
 }
 
 func (s *StatsDSink) EmitEvent(job string, event string, kvs map[string]string) {
-	s.cmdChan <- statsdEmitCmd{Kind: statsdCmdKindEvent, Job: job, Event: event}
+	s.cmdChan <- statsdEmitCmd{Kind: statsdCmdKindEvent, Job: job, Event: event, Kvs: kvs}
 }
 
 func (s *StatsDSink) EmitEventErr(job string, event string, inputErr error, kvs map[string]string) {
-	s.cmdChan <- statsdEmitCmd{Kind: statsdCmdKindEventErr, Job: job, Event: event}
+	s.cmdChan <- statsdEmitCmd{Kind: statsdCmdKindEventErr, Job: job, Event: event, Kvs: kvs}
 }
 
 func (s *StatsDSink) EmitTiming(job string, event string, nanos int64, kvs map[string]string) {
-	s.cmdChan <- statsdEmitCmd{Kind: statsdCmdKindTiming, Job: job, Event: event, Nanos: nanos}
+	s.cmdChan <- statsdEmitCmd{Kind: statsdCmdKindTiming, Job: job, Event: event, Nanos: nanos, Kvs: kvs}
 }
 
 func (s *StatsDSink) EmitGauge(job string, event string, value float64, kvs map[string]string) {
-	s.cmdChan <- statsdEmitCmd{Kind: statsdCmdKindGauge, Job: job, Event: event, Value: value}
+	s.cmdChan <- statsdEmitCmd{Kind: statsdCmdKindGauge, Job: job, Event: event, Value: value, Kvs: kvs}
 }
 
 func (s *StatsDSink) EmitComplete(job string, status CompletionStatus, nanos int64, kvs map[string]string) {
-	s.cmdChan <- statsdEmitCmd{Kind: statsdCmdKindComplete, Job: job, Status: status, Nanos: nanos}
+	s.cmdChan <- statsdEmitCmd{Kind: statsdCmdKindComplete, Job: job, Status: status, Nanos: nanos, Kvs: kvs}
 }
 
 func (s *StatsDSink) loop() {
@@ -193,33 +196,43 @@ LOOP:
 func (s *StatsDSink) processCmd(cmd *statsdEmitCmd) {
 	switch cmd.Kind {
 	case statsdCmdKindEvent:
-		s.processEvent(cmd.Job, cmd.Event)
+		s.processEvent(cmd.Job, cmd.Event, cmd.Kvs)
 	case statsdCmdKindEventErr:
-		s.processEventErr(cmd.Job, cmd.Event)
+		s.processEventErr(cmd.Job, cmd.Event, cmd.Kvs)
 	case statsdCmdKindTiming:
-		s.processTiming(cmd.Job, cmd.Event, cmd.Nanos)
+		s.processTiming(cmd.Job, cmd.Event, cmd.Nanos, cmd.Kvs)
 	case statsdCmdKindGauge:
-		s.processGauge(cmd.Job, cmd.Event, cmd.Value)
+		s.processGauge(cmd.Job, cmd.Event, cmd.Value, cmd.Kvs)
 	case statsdCmdKindComplete:
-		s.processComplete(cmd.Job, cmd.Status, cmd.Nanos)
+		s.processComplete(cmd.Job, cmd.Status, cmd.Nanos, cmd.Kvs)
 	}
 }
 
-func (s *StatsDSink) processEvent(job string, event string) {
+func (s *StatsDSink) processEvent(job string, event string, kvs map[string]string) {
+	var tags strings.Builder
+	if kvs != nil {
+		_, _ = tags.WriteString("#")
+		for k, v := range kvs {
+			if tags.Len() > 1 {
+				_, _ = tags.WriteString(",")
+			}
+			_, _ = tags.WriteString(fmt.Sprintf("%v:%v", k, v))
+		}
+	}
 	if !s.options.SkipTopLevelEvents {
 		pb := s.getPrefixBuffer("", event, "")
-		pb.WriteString("1|c\n")
+		pb.WriteString(fmt.Sprintf("1|c%s\n", tags.String()))
 		s.writeStatsDMetric(pb.Bytes())
 	}
 
 	if !s.options.SkipNestedEvents {
 		pb := s.getPrefixBuffer(job, event, "")
-		pb.WriteString("1|c\n")
+		pb.WriteString(fmt.Sprintf("1|c%s\n", tags.String()))
 		s.writeStatsDMetric(pb.Bytes())
 	}
 }
 
-func (s *StatsDSink) processEventErr(job string, event string) {
+func (s *StatsDSink) processEventErr(job string, event string, kvs map[string]string) {
 	if !s.options.SkipTopLevelEvents {
 		pb := s.getPrefixBuffer("", event, "error")
 		pb.WriteString("1|c\n")
@@ -233,7 +246,7 @@ func (s *StatsDSink) processEventErr(job string, event string) {
 	}
 }
 
-func (s *StatsDSink) processTiming(job string, event string, nanos int64) {
+func (s *StatsDSink) processTiming(job string, event string, nanos int64, kvs map[string]string) {
 	s.writeNanosToTimingBuf(nanos)
 
 	if !s.options.SkipTopLevelEvents {
@@ -251,7 +264,7 @@ func (s *StatsDSink) processTiming(job string, event string, nanos int64) {
 	}
 }
 
-func (s *StatsDSink) processGauge(job string, event string, value float64) {
+func (s *StatsDSink) processGauge(job string, event string, value float64, kvs map[string]string) {
 	s.timingBuf = s.timingBuf[0:0]
 	prec := 2
 	if (value < 0.1) && (value > -0.1) {
@@ -274,7 +287,7 @@ func (s *StatsDSink) processGauge(job string, event string, value float64) {
 	}
 }
 
-func (s *StatsDSink) processComplete(job string, status CompletionStatus, nanos int64) {
+func (s *StatsDSink) processComplete(job string, status CompletionStatus, nanos int64, kvs map[string]string) {
 	s.writeNanosToTimingBuf(nanos)
 	statusString := status.String()
 
