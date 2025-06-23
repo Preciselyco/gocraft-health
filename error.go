@@ -22,6 +22,14 @@ func (e *UnmutedError) Error() string {
 	return e.Err.Error()
 }
 
+func (e *UnmutedError) Unwrap() error {
+	return e.Err
+}
+
+func (e *MutedError) Unwrap() error {
+	return e.Err
+}
+
 func Mute(err error) *MutedError {
 	return &MutedError{Err: err}
 }
